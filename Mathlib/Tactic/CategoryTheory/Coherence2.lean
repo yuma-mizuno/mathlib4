@@ -5,11 +5,15 @@ set_option autoImplicit true
 
 namespace Mathlib.Tactic.Bicategory
 
-open Mathlib.Meta Qq NormNum Lean.Meta AtomM Lean.Elab
+-- open Mathlib.Meta Qq NormNum Lean.Meta AtomM Lean.Elab
 open Lean (MetaM Expr mkRawNatLit)
 open Lean.Elab.Tactic
 open CategoryTheory
 -- open Lean
+
+open Qq
+
+-- set_option pp.collapseStructureProjections false
 
 #check @Bicategory.whiskerRight
 #check FreeBicategory.of.obj
@@ -95,6 +99,14 @@ def _root_.CategoryTheory.FreeBicategory.of' (B : Type u) [Bicategory.{w, v} B] 
 --       mkAppM ``Prefunctor.map #[← mkAppOptM ``FreeBicategory.of #[B, none], e]
 --     | _ => throwError "{e} is not a morphism"
 
+structure LiftHom₂ where
+  /-- A 2-morphism in a bicategory -/
+  hom₂ : Expr
+  /-- A lifte of `hom₂` in the free bicategory -/
+  lift : Expr
+  /-- A proof of the fact that `lift` is a lift of `hom₂` -/
+  pr : Expr
+
 partial def free₁ (e : Expr) : MetaM Expr := do
   -- let (e, _) ← dsimp e (← Simp.Context.ofNames)
   let (``Quiver.Hom, #[_, _, a, b]) := (← whnfR <| ← inferType e).getAppFnArgs
@@ -102,7 +114,7 @@ partial def free₁ (e : Expr) : MetaM Expr := do
   let c ← mkFreshExprMVar (← inferType a)
   let f ← mkFreshExprMVar (← mkAppM ``Quiver.Hom #[a, c])
   let g ← mkFreshExprMVar (← mkAppM ``Quiver.Hom #[c, b])
-  if ← withDefault <| isDefEq e (← mkAppM ``CategoryStruct.comp #[f, g]) then
+  if ← isDefEq e (← mkAppM ``CategoryStruct.comp #[f, g]) then
     mkAppM ``CategoryStruct.comp #[← free₁ f, ← free₁ g]
   else match (← whnfR e).getAppFnArgs with
     | (``CategoryStruct.id, #[_, _, a]) =>
@@ -136,6 +148,43 @@ partial def free₁ (e : Expr) : MetaM Expr := do
 --       let B ← inferType a
 --       mkAppM ``Prefunctor.map #[← mkAppOptM ``FreeBicategory.of #[B, none], e]
 --     | _ => throwError "{e} is not a morphism"
+
+-- variable {B : Type u} [Bicategory.{w, v} B] {a b c d e : B}
+
+-- theorem lift_map₂_comp {a b : FreeBicategory B} {f g : a ⟶ b} (η : f ⟶ g) :
+--     (FreeBicategory.lift (Prefunctor.id : Prefunctor B B)).map₂ η =
+
+-- partial def free₂ (e : Expr) : MetaM LiftHom₂ := do
+--   let error : MetaM Expr := throwError "{← whnfR e} is not a structural 2-morphism"
+--   -- IO.println (← ppExpr <| (← whnfR e))
+--   match e.getAppFnArgs with
+--   | (``CategoryStruct.comp, #[_, _, _, _, _, η, θ]) =>
+--     ⟨e, mkAppM ``CategoryStruct.comp #[← free₂ η, ← free₂ θ], _⟩
+--   | (``Bicategory.whiskerLeft, #[_, _, _, _, _, f, _, _, η]) =>
+--     mkAppM ``Bicategory.whiskerLeft #[← free₁ f, ← free₂ η]
+--   | (``Bicategory.whiskerRight, #[_, _, _, _, _, _, _, η, h]) =>
+--     mkAppM ``Bicategory.whiskerRight #[← free₂ η, ← free₁ h]
+--   | (``CategoryStruct.id, #[_, _, f]) =>
+--     mkAppM ``CategoryStruct.id #[← free₁ f]
+--   | (``Iso.hom, #[_, _, _, _, η]) =>
+--     match (← whnfR η).getAppFnArgs with
+--     | (``Bicategory.associator, #[_, _, _, _, _, _, f, g, h]) =>
+--       mkAppM ``Iso.hom #[← mkAppM ``Bicategory.associator #[← free₁ f, ← free₁ g, ← free₁ h]]
+--     | (``Bicategory.leftUnitor, #[_, _, _, _, f]) =>
+--       mkAppM ``Iso.hom #[← mkAppM ``Bicategory.leftUnitor #[← free₁ f]]
+--     | (``Bicategory.rightUnitor, #[_, _, _, _, f]) =>
+--       mkAppM ``Iso.hom #[← mkAppM ``Bicategory.rightUnitor #[← free₁ f]]
+--     | _ => throwError "{← whnf η} is not a structural 2-morphism"
+--   | (``Iso.inv, #[_, _, _, _, η]) =>
+--     match (← whnfR η).getAppFnArgs with
+--     | (``Bicategory.associator, #[_, _, _, _, _, _, f, g, h]) =>
+--       mkAppM ``Iso.inv #[← mkAppM ``Bicategory.associator #[← free₁ f, ← free₁ g, ← free₁ h]]
+--     | (``Bicategory.leftUnitor, #[_, _, _, _, f]) =>
+--       mkAppM ``Iso.inv #[← mkAppM ``Bicategory.leftUnitor #[← free₁ f]]
+--     | (``Bicategory.rightUnitor, #[_, _, _, _, f]) =>
+--       mkAppM ``Iso.inv #[← mkAppM ``Bicategory.rightUnitor #[← free₁ f]]
+--     | _ => error
+--   | _ => error
 
 partial def free₂ (e : Expr) : MetaM Expr := do
   let error : MetaM Expr := throwError "{← whnfR e} is not a structural 2-morphism"
@@ -174,20 +223,43 @@ partial def free₂ (e : Expr) : MetaM Expr := do
 #check Pseudofunctor.toPrelaxFunctor
 #check PrelaxFunctor.map₂
 
-def mkLiftMap₂LiftExpr (e : Expr) : MetaM Expr := do
-  let (``Quiver.Hom, #[_, _, f, _]) := (← whnfR <| ← inferType e).getAppFnArgs
-    | throwError "{e} is not a morphism"
-  let (``Quiver.Hom, #[_, _, a, _]) := (← whnfR <| ← inferType f).getAppFnArgs
+def objType (η : Expr) : MetaM Expr := do
+  let (``Quiver.Hom, #[_, _, f, _]) := (← inferType η).getAppFnArgs
+    | throwError "{η} is not a morphism"
+  let (``Quiver.Hom, #[_, _, a, _]) := (← inferType f).getAppFnArgs
     | throwError "{f} is not a morphism"
-  let B ← inferType a
+  inferType a
+
+def mkLiftMap₂LiftExpr (e : Expr) : MetaM Expr := do
+  -- let (``Quiver.Hom, #[_, _, f, _]) := (← whnfR <| ← inferType e).getAppFnArgs
+  --   | throwError "{e} is not a morphism"
+  -- let (``Quiver.Hom, #[_, _, a, _]) := (← whnfR <| ← inferType f).getAppFnArgs
+  --   | throwError "{f} is not a morphism"
+  let B ← objType e
   mkAppM ``PrelaxFunctor.map₂ #[← mkAppM ``Pseudofunctor.toPrelaxFunctor
     #[← mkAppM ``FreeBicategory.lift #[← mkAppOptM ``Prefunctor.id #[B, none]]], ← free₂ e]
 
-partial def genAssoc (src tar : Expr) : MetaM Expr := do
-  match src.getAppFnArgs, tar.getAppFnArgs with
-  | (``CategoryStruct.comp, #[_, _, _, _, _, f, g]), (``CategoryStruct.comp, #[_, _, _, _, _, f', h]) =>
-    mkAppM ``Bicategory.whiskerLeft #[f, ← genAssoc g h]
-  | _, _ => throwError "genAssoc failed"
+-- partial def genAssoc (src tar : Expr) : MetaM Expr := do
+--   match src.getAppFnArgs, tar.getAppFnArgs with
+--   | (``CategoryStruct.comp, #[_, _, _, _, _, f, g]), (``CategoryStruct.comp, #[_, _, _, _, _, f', h]) =>
+--     mkAppM ``Bicategory.whiskerLeft #[f, ← genAssoc g h]
+--   | _, _ => throwError "genAssoc failed"
+
+-- instance genAssoc.whiskerLeft (f : a ⟶ b) (g h : b ⟶ c) [LiftHom f] [LiftHom g] [LiftHom h]
+--     [BicategoricalCoherence g h] : BicategoricalCoherence (f ≫ g) (f ≫ h) :=
+--   ⟨f ◁ BicategoricalCoherence.hom g h⟩
+
+inductive genAssoc : Type where
+  | id (f : Expr) : genAssoc
+  | assoc (f g h : Expr) : genAssoc
+  | assocInv (f g h : Expr) : genAssoc
+  | leftUnitor (f : Expr) : genAssoc
+  | leftUnitorInv (f : Expr) : genAssoc
+  | rightUnitor (f : Expr) : genAssoc
+  | rightUnitorInv (f : Expr) : genAssoc
+  | whiskerLeft (f : Expr) (η : genAssoc) : genAssoc
+  | whiskerRight (f : Expr) (η : genAssoc) : genAssoc
+
 
 open Lean Elab Tactic Meta
 
@@ -206,6 +278,7 @@ def bicategory_coherence (g : MVarId) : MetaM Unit := g.withContext do
   -- This new equation is defeq to the original by assumption
   -- on the `LiftHom` instances.
   let g₁ ← g.change (← mkEq lift_lhs lift_rhs)
+  IO.println (← ppExpr (← g₁.getType))
   let [g₂] ← g₁.applyConst ``congrArg
     | exception g "congrArg failed in coherence"
   let [] ← g₂.applyConst ``Subsingleton.elim
