@@ -107,6 +107,112 @@ structure LiftHom₂ where
   /-- A proof of the fact that `lift` is a lift of `hom₂` -/
   pr : Expr
 
+#print FreeBicategory.normalizeIso
+
+def normalizeHomAux {B : Type u} [Quiver.{v + 1} B] {a : B} :
+    ∀ {b c : B}, FreeBicategory.Hom a b → FreeBicategory.Hom b c → FreeBicategory.Hom a c
+  | _, _, p, FreeBicategory.Hom.of f => p.comp (FreeBicategory.Hom.of f)
+  | _, _, p, FreeBicategory.Hom.id _ => p
+  | _, _, p, FreeBicategory.Hom.comp f g => normalizeHomAux (normalizeHomAux p f) g
+
+def normalizeHom {B : Type u} [Quiver.{v + 1} B] {a b : B} (f : FreeBicategory.Hom a b) :
+    FreeBicategory.Hom a b :=
+  normalizeHomAux (FreeBicategory.Hom.id a) f
+
+open FreeBicategory in
+def normalizeHom₂Aux {B : Type u} [Quiver.{v + 1} B] {a : B} :
+    ∀ {b c : B} (p : FreeBicategory.Hom a b) (f : FreeBicategory.Hom b c),
+      Hom₂ (p.comp f) (normalizeHomAux p f)
+  | _, _, _, Hom.of _ => Hom₂.id _
+  | _, _, _, Hom.id b => Hom₂.right_unitor _
+  | _, _, p, Hom.comp f g =>
+    (Hom₂.associator_inv p f g).vcomp
+      ((Hom₂.whisker_right g (normalizeHom₂Aux p f)).vcomp (normalizeHom₂Aux (normalizeHomAux p f) g))
+
+open FreeBicategory in
+def normalizeHom₂InvAux {B : Type u} [Quiver.{v + 1} B] {a : B} :
+    ∀ {b c : B} (p : FreeBicategory.Hom a b) (f : FreeBicategory.Hom b c),
+      Hom₂ (normalizeHomAux p f) (p.comp f)
+  | _, _, _, Hom.of _ => Hom₂.id _
+  | _, _, _, Hom.id b => Hom₂.right_unitor_inv _
+  | _, _, p, Hom.comp f g =>
+    (normalizeHom₂InvAux (normalizeHomAux p f) g).vcomp
+      ((Hom₂.whisker_right g (normalizeHom₂InvAux p f)).vcomp (Hom₂.associator p f g))
+
+def normalizeHom₂ {B : Type u} [Quiver.{v + 1} B] {a b : B} (f : FreeBicategory.Hom a b) :
+    FreeBicategory.Hom₂ f (normalizeHom f) :=
+  (FreeBicategory.Hom₂.left_unitor_inv _).vcomp (normalizeHom₂Aux (FreeBicategory.Hom.id a) f)
+
+def normalizeHom₂Inv {B : Type u} [Quiver.{v + 1} B] {a b : B} (f : FreeBicategory.Hom a b) :
+    FreeBicategory.Hom₂ (normalizeHom f) f :=
+  (normalizeHom₂InvAux (FreeBicategory.Hom.id a) f).vcomp (FreeBicategory.Hom₂.left_unitor _)
+
+partial def normalize (p f : Expr) : MetaM (Expr × Expr) := do
+  match f.getAppFnArgs with
+  | (``CategoryStruct.id, _) =>
+    let η ← mkAppM ``Bicategory.rightUnitor #[p]
+    return (p, η)
+  -- `(α_ _ _ _).symm ≪≫ whiskerRightIso (normalizeIso p f) g ≪≫ normalizeIso (normalizeAux p f) g`
+  | (``CategoryStruct.comp, #[_, _, _, _, _, f, g]) =>
+    let η₀ ← normalize p f
+    let η₀' ← normalize η₀.1 g
+    let η₂ := η₀'.2
+    let α ← mkAppM ``Iso.symm #[← mkAppM ``Bicategory.associator #[p, f, g]]
+    let f' := η₀'.1
+    match (η₀.2).getAppFnArgs with
+    | (``Iso.refl, _) =>
+      let η ← mkAppM ``Iso.trans #[α, η₂]
+      return (f', η)
+    | _ =>
+      let η₁ ← mkAppM ``Bicategory.whiskerRightIso #[η₀.2, g]
+      match η₂.getAppFnArgs with
+      | (``Iso.refl, _) =>
+        let η ← mkAppM ``Iso.trans #[α, η₁]
+        return (f', η)
+      | _ =>
+        let η ← mkAppM ``Iso.trans #[η₁, η₂]
+        let η ← mkAppM ``Iso.trans #[α, η]
+        return (f', η)
+  | _ =>
+    let f' ← mkAppM ``CategoryStruct.comp #[p, f]
+    let η ← mkAppM ``Iso.refl #[f']
+    return (f', η)
+
+def Bicategory.toQuiver {B : Type} [Bicategory B] : Quiver B := inferInstance
+
+#eval show TermElabM _ from do
+  withLocalDecl `B .default (.sort (.succ (.zero))) <| fun B => do
+  withLocalDecl `_h .instImplicit (mkAppN (.const ``Bicategory [ .zero,  .zero,  .zero]) #[B]) <| fun _h => do
+  withLocalDecl `a .default B <| fun a => do
+  withLocalDecl `b .default B <| fun b => do
+  withLocalDecl `c .default B <| fun c => do
+  withLocalDecl `d .default B <| fun d => do
+  withLocalDecl `f .default (← mkAppOptM ``Quiver.Hom #[B, ← mkAppOptM ``Bicategory.toQuiver #[B, _h], a, b]) <| fun f => do
+  withLocalDecl `g .default (← mkAppOptM ``Quiver.Hom #[B, ← mkAppOptM ``Bicategory.toQuiver #[B, _h], b, c]) <| fun g => do
+  withLocalDecl `h .default (← mkAppOptM ``Quiver.Hom #[B, ← mkAppOptM ``Bicategory.toQuiver #[B, _h], c, d]) <| fun h => do
+    let f ← Term.exprToSyntax f
+    let g ← Term.exprToSyntax g
+    let h ← Term.exprToSyntax h
+    let fg ← Elab.Term.elabTermAndSynthesize (← `($f ≫ (𝟙 _ ≫ $g) ≫ 𝟙 _ ≫ $h)) none
+    IO.println (← ppExpr fg)
+    IO.println (← ppExpr (← normalize (← mkAppM ``CategoryStruct.id #[a]) fg).1)
+    let (e, _) ← dsimp (← mkAppM ``Iso.hom #[(← normalize (← mkAppM ``CategoryStruct.id #[a]) fg).2]) (← Simp.Context.ofNames)
+    IO.println (← ppExpr e)
+
+#eval show TermElabM _ from do
+  withLocalDecl `B .default (.sort (.succ (.zero))) <| fun B => do
+  withLocalDecl `_h .instImplicit (mkAppN (.const ``Bicategory [ .zero,  .zero,  .zero]) #[B]) <| fun _h => do
+  withLocalDecl `a .default B <| fun a => do
+  withLocalDecl `b .default B <| fun b => do
+  withLocalDecl `f .default (← mkAppOptM ``Quiver.Hom #[B, ← mkAppOptM ``Bicategory.toQuiver #[B, _h], a, b]) <| fun f => do
+    -- IO.println (← ppExpr (← Elab.Term.elabTermAndSynthesize (← `($(← Term.exprToSyntax f) ≫ $(← Term.exprToSyntax g))) none))
+    let f ← Term.exprToSyntax f
+    let fg ← Elab.Term.elabTermAndSynthesize (← `(𝟙 _ ≫ $f)) none
+    IO.println (← ppExpr (← normalize (← mkAppM ``CategoryStruct.id #[a]) fg).1)
+    IO.println (← ppExpr (← normalize (← mkAppM ``CategoryStruct.id #[a]) fg).2)
+    let (e, _) ← dsimp (← mkAppM ``Iso.hom #[(← normalize (← mkAppM ``CategoryStruct.id #[a]) fg).2]) (← Simp.Context.ofNames)
+    IO.println (← ppExpr e)
+
 partial def free₁ (e : Expr) : MetaM Expr := do
   -- let (e, _) ← dsimp e (← Simp.Context.ofNames)
   let (``Quiver.Hom, #[_, _, a, b]) := (← whnfR <| ← inferType e).getAppFnArgs
@@ -127,6 +233,67 @@ partial def free₁ (e : Expr) : MetaM Expr := do
         let B ← inferType a
         mkAppM ``Prefunctor.map #[← mkAppOptM ``FreeBicategory.of #[B, none], e]
       | _ => throwError "{e} is not a morphism"
+
+-- local instance homCategory' (a b : B) : Category (FreeBicategory.Hom a b) :=
+--   FreeBicategory.homCategory a b
+
+open Term
+
+elab "lift_to_free " t:term : term => do
+  -- withMainContext do
+  let f ← Term.elabTerm t none
+  free₁ f
+
+-- syntax (name := lift_to_free) "lift" term : term
+
+-- @[term_elab lift_to_free]
+-- def liftToFreeImpl : TermElab := fun stx expectedType? => do
+--   free₁ `($stx)
+
+def hoge {B : Type u} [Bicategory.{w, v} B] {a b : B} (f : a ⟶ b) : FreeBicategory.Hom a b :=
+  lift_to_free (f ≫ 𝟙 b)
+
+#print hoge
+
+def genAssoc {B : Type u} [Bicategory.{w, v} B] {a b : B}
+    (f g : a ⟶ b)
+    (f' : FreeBicategory.Hom a b)
+    (g' : FreeBicategory.Hom a b)
+    (fg' : normalizeHom f' = normalizeHom g' := by rfl)
+    (prf : (FreeBicategory.lift (𝟭q B)).map f' = f := by rfl)
+    (prg : (FreeBicategory.lift (𝟭q B)).map g' = g := by rfl) : f ⟶ g :=
+  let ι : FreeBicategory.Hom₂ f' g' :=
+    (normalizeHom₂ f').vcomp (FreeBicategory.Hom₂.vcomp (fg' ▸ FreeBicategory.Hom₂.id _) (normalizeHom₂Inv g'))
+  eqToHom prf.symm ≫ ((FreeBicategory.lift (𝟭q B)).map₂ <| Quot.mk _ ι) ≫ eqToHom prg
+
+def bicategoricalComp {B : Type u} [Bicategory.{w, v} B] {a b : B}
+    {f g h i : a ⟶ b}
+    (g' : FreeBicategory.Hom a b := lift_to_free g)
+    (h' : FreeBicategory.Hom a b := lift_to_free h)
+    (gh' : normalizeHom g' = normalizeHom h' := by rfl)
+    (prg : (FreeBicategory.lift (𝟭q B)).map g' = g := by rfl)
+    (prh : (FreeBicategory.lift (𝟭q B)).map h' = h := by rfl)
+    (η : f ⟶ g) (θ : h ⟶ i) : f ⟶ i :=
+  η ≫ genAssoc g h g' h' gh' prg prh ≫ θ
+
+infixr:80 " ⊗≫ " => Mathlib.Tactic.Bicategory.bicategoricalComp
+
+example {B : Type u} [Bicategory.{w, v} B] {a b : B}
+    {f : a ⟶ b} : f ≫ 𝟙 b ⟶ f :=
+  genAssoc (f ≫ 𝟙 b) f (lift_to_free (f ≫ 𝟙 b)) (lift_to_free f)
+
+structure bicatNormalize.Result where
+  src : Expr
+  tar : Expr
+  hom : Array Expr
+  prf : Expr
+
+partial def bicatNormalize (n : Expr) (η : Expr) : MetaM bicatNormalize.Result := do
+  match η.getAppFnArgs with
+  | (``CategoryStruct.comp, #[_, _, _, _, _, η, θ]) =>
+    let ⟨s, t, ηs, prf⟩ ← bicatNormalize n η
+    return ⟨s, t, ηs, prf⟩
+  | _ => throwError "Normalization failed : {η}"
 
 -- partial def free₁ (e : Expr) : MetaM Expr := do
 --   let (e, _) ← dsimp e (← Simp.Context.ofNames)
@@ -249,17 +416,39 @@ def mkLiftMap₂LiftExpr (e : Expr) : MetaM Expr := do
 --     [BicategoricalCoherence g h] : BicategoricalCoherence (f ≫ g) (f ≫ h) :=
 --   ⟨f ◁ BicategoricalCoherence.hom g h⟩
 
-inductive genAssoc : Type where
-  | id (f : Expr) : genAssoc
-  | assoc (f g h : Expr) : genAssoc
-  | assocInv (f g h : Expr) : genAssoc
-  | leftUnitor (f : Expr) : genAssoc
-  | leftUnitorInv (f : Expr) : genAssoc
-  | rightUnitor (f : Expr) : genAssoc
-  | rightUnitorInv (f : Expr) : genAssoc
-  | whiskerLeft (f : Expr) (η : genAssoc) : genAssoc
-  | whiskerRight (f : Expr) (η : genAssoc) : genAssoc
+-- inductive genAssoc : Type where
+--   | id (f : Expr) : genAssoc
+--   | assoc (f g h : Expr) : genAssoc
+--   | assocInv (f g h : Expr) : genAssoc
+--   | leftUnitor (f : Expr) : genAssoc
+--   | leftUnitorInv (f : Expr) : genAssoc
+--   | rightUnitor (f : Expr) : genAssoc
+--   | rightUnitorInv (f : Expr) : genAssoc
+--   | whiskerLeft (f : Expr) (η : genAssoc) : genAssoc
+--   | whiskerRight (f : Expr) (η : genAssoc) : genAssoc
 
+partial def genAssoc (src tar : Expr) : MetaM Expr := do
+  let (``Quiver.Hom, #[_, _, _a, _]) := (← whnfR <| ← inferType src).getAppFnArgs
+    | throwError "{src} is not a morphism"
+  let B ← inferType _a
+  let a ← mkFreshExprMVar B
+  let b ← mkFreshExprMVar B
+  let c ← mkFreshExprMVar B
+  let f ← mkFreshExprMVar (← mkAppM ``Quiver.Hom #[a, b])
+  let g ← mkFreshExprMVar (← mkAppM ``Quiver.Hom #[b, c])
+  let h ← mkFreshExprMVar (← mkAppM ``Quiver.Hom #[b, c])
+
+  if ← isDefEq src (← mkAppM ``CategoryStruct.comp #[f, g]) then
+    if ← isDefEq tar (← mkAppM ``CategoryStruct.comp #[f, h]) then
+      mkAppM ``Bicategory.whiskerLeft #[f, ← genAssoc g h]
+    else throwError "genAssoc failed"
+  else
+
+
+    match src.getAppFnArgs, tar.getAppFnArgs with
+    | (``CategoryStruct.comp, #[_, _, _, _, _, f, g]), (``CategoryStruct.comp, #[_, _, _, _, _, f', h]) =>
+      mkAppM ``Bicategory.whiskerLeft #[f, ← genAssoc g h]
+    | _, _ => throwError "genAssoc failed"
 
 open Lean Elab Tactic Meta
 
@@ -325,6 +514,28 @@ by bicategory_coherence
 
 example : 𝟙 (𝟙 a ≫ 𝟙 a) ≫ (λ_ (𝟙 a)).hom = 𝟙 (𝟙 a ≫ 𝟙 a) ≫ (ρ_ (𝟙 a)).hom := by
   bicategory_coherence
+
+example (f : a ⟶ b) (g : b ⟶ c) (h : c ⟶ d) :
+  (CategoryTheory.Bicategory.associator (𝟙 a) f ((𝟙 b ≫ g) ≫ 𝟙 c ≫ h)).inv ≫
+  CategoryTheory.Bicategory.whiskerRight (𝟙 (𝟙 a ≫ f)) ((𝟙 b ≫ g) ≫ 𝟙 c ≫ h) ≫
+    (CategoryTheory.Bicategory.associator (𝟙 a ≫ f) (𝟙 b ≫ g) (𝟙 c ≫ h)).inv ≫
+      CategoryTheory.Bicategory.whiskerRight
+          ((CategoryTheory.Bicategory.associator (𝟙 a ≫ f) (𝟙 b) g).inv ≫
+            CategoryTheory.Bicategory.whiskerRight (CategoryTheory.Bicategory.rightUnitor (𝟙 a ≫ f)).hom g ≫
+              𝟙 ((𝟙 a ≫ f) ≫ g))
+          (𝟙 c ≫ h) ≫
+        (CategoryTheory.Bicategory.associator ((𝟙 a ≫ f) ≫ g) (𝟙 c) h).inv ≫
+          CategoryTheory.Bicategory.whiskerRight (CategoryTheory.Bicategory.rightUnitor ((𝟙 a ≫ f) ≫ g)).hom h ≫
+            𝟙 (((𝟙 a ≫ f) ≫ g) ≫ h) =
+  (CategoryTheory.Bicategory.associator (𝟙 a) f ((𝟙 b ≫ g) ≫ 𝟙 c ≫ h)).inv ≫
+  (CategoryTheory.Bicategory.associator (𝟙 a ≫ f) (𝟙 b ≫ g) (𝟙 c ≫ h)).inv ≫
+    CategoryTheory.Bicategory.whiskerRight
+        ((CategoryTheory.Bicategory.associator (𝟙 a ≫ f) (𝟙 b) g).inv ≫
+          CategoryTheory.Bicategory.whiskerRight (CategoryTheory.Bicategory.rightUnitor (𝟙 a ≫ f)).hom g)
+        (𝟙 c ≫ h) ≫
+      (CategoryTheory.Bicategory.associator ((𝟙 a ≫ f) ≫ g) (𝟙 c) h).inv ≫
+        CategoryTheory.Bicategory.whiskerRight (CategoryTheory.Bicategory.rightUnitor ((𝟙 a ≫ f) ≫ g)).hom h := by
+bicategory_coherence
 
 set_option profiler true in
 example (f₁ : a ⟶ b) (f₂ : b ⟶ c) :
