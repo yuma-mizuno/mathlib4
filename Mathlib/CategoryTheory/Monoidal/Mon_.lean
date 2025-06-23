@@ -656,13 +656,13 @@ instance {f : X ⟶ Y} [IsMon_Hom f] : IsMon_Hom (f ▷ Z) where
   one_hom := by simpa using (inferInstanceAs <| IsMon_Hom (f ⊗ₘ (𝟙 Z))).one_hom
   mul_hom := by simpa using (inferInstanceAs <| IsMon_Hom (f ⊗ₘ (𝟙 Z))).mul_hom
 
-instance : IsMon_Hom (α_ X Y Z).hom :=
+def associator_isMon_hom : IsMon_Hom (α_ X Y Z).hom :=
   ⟨one_associator, mul_associator⟩
 
-instance : IsMon_Hom (λ_ X).hom :=
+def leftUnitor_isMon_hom : IsMon_Hom (λ_ X).hom :=
   ⟨one_leftUnitor, mul_leftUnitor⟩
 
-instance : IsMon_Hom (ρ_ X).hom :=
+def rightUnitor_isMon_hom : IsMon_Hom (ρ_ X).hom :=
   ⟨one_rightUnitor, mul_rightUnitor⟩
 
 theorem one_braiding (X Y : C) [Mon_Class X] [Mon_Class Y] : η ≫ (β_ X Y).hom = η := by
@@ -687,9 +687,15 @@ instance monMonoidalStruct : MonoidalCategoryStruct (Mon_ C) where
   whiskerRight f Y := Hom.mk (f.hom ▷ Y.X)
   whiskerLeft X _ _ g := Hom.mk (X.X ◁ g.hom)
   tensorUnit := ⟨𝟙_ C⟩
-  associator M N P := mkIso' <| associator M.X N.X P.X
-  leftUnitor M := mkIso' <| leftUnitor M.X
-  rightUnitor M := mkIso' <| rightUnitor M.X
+  associator M N P :=
+    have : IsMon_Hom (associator M.X N.X P.X).hom := Mon_Class.associator_isMon_hom
+    mkIso' <| associator M.X N.X P.X
+  leftUnitor M :=
+    have : IsMon_Hom (leftUnitor M.X).hom := Mon_Class.leftUnitor_isMon_hom
+    mkIso' <| leftUnitor M.X
+  rightUnitor M :=
+    have : IsMon_Hom (rightUnitor M.X).hom := Mon_Class.rightUnitor_isMon_hom
+    mkIso' <| rightUnitor M.X
 
 @[simp]
 theorem tensorUnit_X : (𝟙_ (Mon_ C)).X = 𝟙_ C := rfl
