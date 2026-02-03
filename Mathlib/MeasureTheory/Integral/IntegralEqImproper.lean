@@ -470,7 +470,8 @@ theorem AECover.integral_tendsto_of_countably_generated [l.IsCountablyGenerated]
     convert h using 2; rw [integral_indicator (hφ.measurableSet _)]
   tendsto_integral_filter_of_dominated_convergence (fun x => ‖f x‖)
     (Eventually.of_forall fun i => hfi.aestronglyMeasurable.indicator <| hφ.measurableSet i)
-    (Eventually.of_forall fun _ => ae_of_all _ fun _ => norm_indicator_le_norm_self _ _) hfi.norm
+    (Eventually.of_forall fun _ => ae_of_all _ fun _ => norm_indicator_le_norm_self _ _)
+    hfi.norm.hasFiniteIntegral
     (hφ.ae_tendsto_indicator f)
 
 /-- Slight reformulation of `MeasureTheory.AECover.integral_tendsto_of_countably_generated`. -/

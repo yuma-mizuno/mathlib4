@@ -120,7 +120,7 @@ theorem integral_inv_smul_sub_mul_tendsto_integral_lineDeriv_mul
     _ ≤ (t⁻¹ * (C * ‖(x + t • v) - x‖)) * ‖g x‖ := by
       gcongr; exact LipschitzWith.norm_sub_le hf (x + t • v) x
     _ = (C * ‖v‖) * ‖g x‖ := by simp [field, norm_smul, abs_of_nonneg ht.le]
-  · exact hg.norm.const_mul _
+  · exact (hg.norm.const_mul _).hasFiniteIntegral
   · filter_upwards [hf.ae_lineDifferentiableAt v] with x hx
     exact hx.hasLineDerivAt.tendsto_slope_zero_right.mul tendsto_const_nhds
 
@@ -161,8 +161,8 @@ theorem integral_inv_smul_sub_mul_tendsto_integral_lineDeriv_mul'
         exact mul_le_of_le_one_left (norm_nonneg v) ht.2
       simp only [B, A, _root_.sub_self, smul_eq_mul, mul_zero, zero_mul, norm_zero]
       exact indicator_nonneg (fun y _hy ↦ by positivity) _
-  · rw [integrable_indicator_iff K_compact.measurableSet]
-    exact ContinuousOn.integrableOn_compact K_compact (by fun_prop)
+  · rw [hasFiniteIntegral_indicator_iff K_compact.measurableSet]
+    exact (ContinuousOn.integrableOn_compact K_compact (by fun_prop)).hasFiniteIntegral
   · filter_upwards [hf.ae_lineDifferentiableAt v] with x hx
     exact hx.hasLineDerivAt.tendsto_slope_zero_right.mul tendsto_const_nhds
 

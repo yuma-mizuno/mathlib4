@@ -52,11 +52,11 @@ variable {α E G : Type*}
 
 /-- **Lebesgue dominated convergence theorem** provides sufficient conditions under which almost
   everywhere convergence of a sequence of functions implies the convergence of their integrals.
-  We could weaken the condition `bound_integrable` to require `HasFiniteIntegral bound μ` instead
-  (i.e. not requiring that `bound` is measurable), but in all applications proving integrability
-  is easier. -/
+  In many cases, the condition `HasFiniteIntegral bound μ` is obtained by proving
+  `Integrable bound μ`. -/
 theorem tendsto_integral_of_dominated_convergence {F : ℕ → α → G} {f : α → G} (bound : α → ℝ)
-    (F_measurable : ∀ n, AEStronglyMeasurable (F n) μ) (bound_integrable : Integrable bound μ)
+    (F_measurable : ∀ n, AEStronglyMeasurable (F n) μ)
+    (bound_integrable : HasFiniteIntegral bound μ)
     (h_bound : ∀ n, ∀ᵐ a ∂μ, ‖F n a‖ ≤ bound a)
     (h_lim : ∀ᵐ a ∂μ, Tendsto (fun n => F n a) atTop (𝓝 (f a))) :
     Tendsto (fun n => ∫ a, F n a ∂μ) atTop (𝓝 <| ∫ a, f a ∂μ) := by
@@ -69,7 +69,7 @@ theorem tendsto_integral_of_dominated_convergence {F : ℕ → α → G} {f : α
 /-- Lebesgue dominated convergence theorem for filters with a countable basis -/
 theorem tendsto_integral_filter_of_dominated_convergence {ι} {l : Filter ι} [l.IsCountablyGenerated]
     {F : ι → α → G} {f : α → G} (bound : α → ℝ) (hF_meas : ∀ᶠ n in l, AEStronglyMeasurable (F n) μ)
-    (h_bound : ∀ᶠ n in l, ∀ᵐ a ∂μ, ‖F n a‖ ≤ bound a) (bound_integrable : Integrable bound μ)
+    (h_bound : ∀ᶠ n in l, ∀ᵐ a ∂μ, ‖F n a‖ ≤ bound a) (bound_integrable : HasFiniteIntegral bound μ)
     (h_lim : ∀ᵐ a ∂μ, Tendsto (fun n => F n a) l (𝓝 (f a))) :
     Tendsto (fun n => ∫ a, F n a ∂μ) l (𝓝 <| ∫ a, f a ∂μ) := by
   by_cases hG : CompleteSpace G
@@ -83,7 +83,7 @@ theorem hasSum_integral_of_dominated_convergence {ι} [Countable ι] {F : ι →
     (bound : ι → α → ℝ) (hF_meas : ∀ n, AEStronglyMeasurable (F n) μ)
     (h_bound : ∀ n, ∀ᵐ a ∂μ, ‖F n a‖ ≤ bound n a)
     (bound_summable : ∀ᵐ a ∂μ, Summable fun n => bound n a)
-    (bound_integrable : Integrable (fun a => ∑' n, bound n a) μ)
+    (bound_integrable : HasFiniteIntegral (fun a => ∑' n, bound n a) μ)
     (h_lim : ∀ᵐ a ∂μ, HasSum (fun n => F n a) (f a)) :
     HasSum (fun n => ∫ a, F n a ∂μ) (∫ a, f a ∂μ) := by
   have hb_nonneg : ∀ᵐ a ∂μ, ∀ n, 0 ≤ bound n a :=
@@ -92,8 +92,8 @@ theorem hasSum_integral_of_dominated_convergence {ι} [Countable ι] {F : ι →
     intro n
     filter_upwards [hb_nonneg, bound_summable]
       with _ ha0 ha_sum using ha_sum.le_tsum _ fun i _ => ha0 i
-  have hF_integrable : ∀ n, Integrable (F n) μ := by
-    refine fun n => bound_integrable.mono' (hF_meas n) ?_
+  have hF_integrable : ∀ n, Integrable (F n) μ := fun n => by
+    refine ⟨hF_meas n, bound_integrable.mono'  ?_⟩
     exact EventuallyLE.trans (h_bound n) (hb_le_tsum n)
   simp only [HasSum, ← integral_finset_sum _ fun n _ => hF_integrable n]
   refine tendsto_integral_filter_of_dominated_convergence
@@ -119,15 +119,10 @@ theorem integral_tsum {ι} [Countable ι] {f : ι → α → G} (hf : ∀ i, AES
     rw [← ENNReal.tsum_coe_ne_top_iff_summable_coe]
     exact hx.ne
   convert (MeasureTheory.hasSum_integral_of_dominated_convergence (fun i a => ‖f i a‖₊) hf _ hhh
-          ⟨_, _⟩ _).tsum_eq.symm
+          _ _).tsum_eq.symm
   · intro n
     filter_upwards with x
     rfl
-  · simp_rw [← NNReal.coe_tsum]
-    rw [aestronglyMeasurable_iff_aemeasurable]
-    apply AEMeasurable.coe_nnreal_real
-    apply AEMeasurable.nnreal_tsum
-    exact fun i => (hf i).nnnorm.aemeasurable
   · dsimp [HasFiniteIntegral]
     have : ∫⁻ a, ∑' n, ‖f n a‖ₑ ∂μ < ⊤ := by rwa [lintegral_tsum hf'', lt_top_iff_ne_top]
     convert this using 1
@@ -171,7 +166,7 @@ theorem tendsto_integral_filter_of_norm_le_const {ι} {l : Filter ι} [l.IsCount
   obtain ⟨c, h_boundc⟩ := h_bound
   let C : α → ℝ := (fun _ => c)
   exact tendsto_integral_filter_of_dominated_convergence
-    C h_meas h_boundc (integrable_const c) h_lim
+    C h_meas h_boundc (integrable_const c).hasFiniteIntegral h_lim
 
 end MeasureTheory
 
@@ -193,7 +188,8 @@ theorem _root_.Antitone.tendsto_setIntegral (hsm : ∀ i, MeasurableSet (s i)) (
   · intro n
     rw [aestronglyMeasurable_indicator_iff (hsm n)]
     exact (IntegrableOn.mono_set hfi (h_anti (zero_le n))).1
-  · rw [integrable_indicator_iff (hsm 0)]
+  · apply Integrable.hasFiniteIntegral
+    rw [integrable_indicator_iff (hsm 0)]
     exact hfi.norm
   · simp_rw [norm_indicator_eq_indicator_norm]
     refine fun n => Eventually.of_forall fun x => ?_
@@ -224,7 +220,8 @@ nonrec theorem tendsto_integral_filter_of_dominated_convergence {ι} {l : Filter
   simp only [intervalIntegrable_iff, intervalIntegral_eq_integral_uIoc,
     ← ae_restrict_iff' (α := ℝ) (μ := μ) measurableSet_uIoc] at *
   exact tendsto_const_nhds.smul <|
-    tendsto_integral_filter_of_dominated_convergence bound hF_meas h_bound bound_integrable h_lim
+    tendsto_integral_filter_of_dominated_convergence bound hF_meas h_bound
+    bound_integrable.hasFiniteIntegral h_lim
 
 /-- Lebesgue dominated convergence theorem for parametric interval integrals. -/
 nonrec theorem hasSum_integral_of_dominated_convergence {ι} [Countable ι] {F : ι → ℝ → E}
@@ -237,8 +234,8 @@ nonrec theorem hasSum_integral_of_dominated_convergence {ι} [Countable ι] {F :
   simp only [intervalIntegrable_iff, intervalIntegral_eq_integral_uIoc, ←
     ae_restrict_iff' (α := ℝ) (μ := μ) measurableSet_uIoc] at *
   exact
-    (hasSum_integral_of_dominated_convergence bound hF_meas h_bound bound_summable bound_integrable
-          h_lim).const_smul
+    (hasSum_integral_of_dominated_convergence bound hF_meas h_bound bound_summable
+      bound_integrable.hasFiniteIntegral h_lim).const_smul
       _
 
 /-- Interval integrals commute with countable sums, when the supremum norms are summable (a

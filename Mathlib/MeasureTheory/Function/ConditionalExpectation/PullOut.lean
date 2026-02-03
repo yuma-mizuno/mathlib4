@@ -116,7 +116,7 @@ theorem condExp_stronglyMeasurable_bilin_of_bound [CompleteSpace E]
     exact ((by fun_prop : Continuous (fun x ↦ B x (g ω))).tendsto (f ω)).comp hω
   · filter_upwards [hfs_tendsto] with ω hω
     exact ((by fun_prop : Continuous (fun x ↦ B x (μ[g | m] ω))).tendsto (f ω)).comp hω
-  · exact hg.norm.const_mul _
+  · exact (hg.norm.const_mul _).hasFiniteIntegral
   · fun_prop
   · refine fun n ↦ Eventually.of_forall fun _ ↦ ?_
     grw [B.le_opNorm₂, hfs_bound]

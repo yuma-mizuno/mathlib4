@@ -468,8 +468,9 @@ lemma measure_preimage_isMulLeftInvariant_eq_smul_of_hasCompactSupport
     apply tendsto_integral_of_dominated_convergence
         (bound := (tsupport f).indicator (fun (_ : G) ↦ (1 : ℝ)))
     · exact fun n ↦ (vf_cont n).aestronglyMeasurable
-    · apply IntegrableOn.integrable_indicator _ (isClosed_tsupport f).measurableSet
-      simpa using IsCompact.measure_lt_top h'f
+    · rw [hasFiniteIntegral_indicator_iff (isClosed_tsupport f).measurableSet,
+        hasFiniteIntegral_const_iff_isFiniteMeasure (by grind), isFiniteMeasure_restrict]
+      apply h'f.measure_ne_top
     · refine fun n ↦ Eventually.of_forall (fun x ↦ ?_)
       by_cases hx : x ∈ tsupport f
       · simp only [v, Real.norm_eq_abs, NNReal.abs_eq, hx, indicator_of_mem]

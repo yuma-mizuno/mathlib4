@@ -106,7 +106,7 @@ theorem MeasureTheory.StronglyMeasurable.integral_prod_right [SFinite ν] ⦃f :
         mem_setOf_eq]
       refine
         tendsto_integral_of_dominated_convergence (fun y => ‖f x y‖ + ‖f x y‖)
-          (fun n => (s' n x).aestronglyMeasurable) (hfx.norm.add hfx.norm) ?_ ?_
+          (fun n => (s' n x).aestronglyMeasurable) (hfx.norm.add hfx.norm).hasFiniteIntegral ?_ ?_
       · refine fun n => Eventually.of_forall fun y =>
           SimpleFunc.norm_approxOn_zero_le ?_ ?_ (x, y) n
         · exact hf.measurable

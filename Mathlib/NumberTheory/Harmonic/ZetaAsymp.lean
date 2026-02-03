@@ -262,7 +262,8 @@ lemma continuousOn_term (n : ℕ) :
     · exact_mod_cast sub_nonneg.mpr hx.1.le
     · exact this.le
     · linarith
-  · rw [← IntegrableOn, ← intervalIntegrable_iff_integrableOn_Ioc_of_le (by linarith)]
+  · apply Integrable.hasFiniteIntegral
+    rw [← IntegrableOn, ← intervalIntegrable_iff_integrableOn_Ioc_of_le (by linarith)]
     exact_mod_cast term_welldef (by lia : 0 < (n + 1)) zero_lt_one
   · rw [ae_restrict_iff' measurableSet_Ioc]
     filter_upwards with x hx

@@ -54,7 +54,7 @@ namespace Real
 lemma tendsto_integral_cexp_sq_smul (hf : Integrable f) :
     Tendsto (fun (c : ℝ) ↦ (∫ v : V, cexp (- c⁻¹ * ‖v‖ ^ 2) • f v))
       atTop (𝓝 (∫ v : V, f v)) := by
-  apply tendsto_integral_filter_of_dominated_convergence _ _ _ hf.norm
+  apply tendsto_integral_filter_of_dominated_convergence _ _ _ hf.norm.hasFiniteIntegral
   · filter_upwards with v
     nth_rewrite 2 [show f v = cexp (- (0 : ℝ) * ‖v‖ ^ 2) • f v by simp]
     apply (Tendsto.cexp _).smul_const

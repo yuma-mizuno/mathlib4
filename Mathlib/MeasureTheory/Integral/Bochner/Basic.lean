@@ -418,7 +418,8 @@ variable {X : Type*} [TopologicalSpace X] [FirstCountableTopology X]
 
 theorem continuousWithinAt_of_dominated {F : X → α → G} {x₀ : X} {bound : α → ℝ} {s : Set X}
     (hF_meas : ∀ᶠ x in 𝓝[s] x₀, AEStronglyMeasurable (F x) μ)
-    (h_bound : ∀ᶠ x in 𝓝[s] x₀, ∀ᵐ a ∂μ, ‖F x a‖ ≤ bound a) (bound_integrable : Integrable bound μ)
+    (h_bound : ∀ᶠ x in 𝓝[s] x₀, ∀ᵐ a ∂μ, ‖F x a‖ ≤ bound a)
+    (bound_integrable : HasFiniteIntegral bound μ)
     (h_cont : ∀ᵐ a ∂μ, ContinuousWithinAt (fun x => F x a) s x₀) :
     ContinuousWithinAt (fun x => ∫ a, F x a ∂μ) s x₀ := by
   by_cases hG : CompleteSpace G
@@ -429,7 +430,8 @@ theorem continuousWithinAt_of_dominated {F : X → α → G} {x₀ : X} {bound :
 
 theorem continuousAt_of_dominated {F : X → α → G} {x₀ : X} {bound : α → ℝ}
     (hF_meas : ∀ᶠ x in 𝓝 x₀, AEStronglyMeasurable (F x) μ)
-    (h_bound : ∀ᶠ x in 𝓝 x₀, ∀ᵐ a ∂μ, ‖F x a‖ ≤ bound a) (bound_integrable : Integrable bound μ)
+    (h_bound : ∀ᶠ x in 𝓝 x₀, ∀ᵐ a ∂μ, ‖F x a‖ ≤ bound a)
+    (bound_integrable : HasFiniteIntegral bound μ)
     (h_cont : ∀ᵐ a ∂μ, ContinuousAt (fun x => F x a) x₀) :
     ContinuousAt (fun x => ∫ a, F x a ∂μ) x₀ := by
   by_cases hG : CompleteSpace G
@@ -440,7 +442,8 @@ theorem continuousAt_of_dominated {F : X → α → G} {x₀ : X} {bound : α �
 
 theorem continuousOn_of_dominated {F : X → α → G} {bound : α → ℝ} {s : Set X}
     (hF_meas : ∀ x ∈ s, AEStronglyMeasurable (F x) μ)
-    (h_bound : ∀ x ∈ s, ∀ᵐ a ∂μ, ‖F x a‖ ≤ bound a) (bound_integrable : Integrable bound μ)
+    (h_bound : ∀ x ∈ s, ∀ᵐ a ∂μ, ‖F x a‖ ≤ bound a)
+    (bound_integrable : HasFiniteIntegral bound μ)
     (h_cont : ∀ᵐ a ∂μ, ContinuousOn (fun x => F x a) s) :
     ContinuousOn (fun x => ∫ a, F x a ∂μ) s := by
   by_cases hG : CompleteSpace G
@@ -451,7 +454,7 @@ theorem continuousOn_of_dominated {F : X → α → G} {bound : α → ℝ} {s :
 
 theorem continuous_of_dominated {F : X → α → G} {bound : α → ℝ}
     (hF_meas : ∀ x, AEStronglyMeasurable (F x) μ) (h_bound : ∀ x, ∀ᵐ a ∂μ, ‖F x a‖ ≤ bound a)
-    (bound_integrable : Integrable bound μ) (h_cont : ∀ᵐ a ∂μ, Continuous fun x => F x a) :
+    (bound_integrable : HasFiniteIntegral bound μ) (h_cont : ∀ᵐ a ∂μ, Continuous fun x => F x a) :
     Continuous fun x => ∫ a, F x a ∂μ := by
   by_cases hG : CompleteSpace G
   · simp only [integral, hG, L1.integral]

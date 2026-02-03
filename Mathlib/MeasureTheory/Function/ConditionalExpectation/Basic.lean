@@ -434,7 +434,7 @@ variable [NormedAddCommGroup E] [CompleteSpace E] [NormedSpace ℝ E]
   `condExpL1`. -/
 theorem tendsto_condExpL1_of_dominated_convergence (hm : m ≤ m₀) [SigmaFinite (μ.trim hm)]
     {fs : ℕ → α → E} {f : α → E} (bound_fs : α → ℝ)
-    (hfs_meas : ∀ n, AEStronglyMeasurable (fs n) μ) (h_int_bound_fs : Integrable bound_fs μ)
+    (hfs_meas : ∀ n, AEStronglyMeasurable (fs n) μ) (h_int_bound_fs : HasFiniteIntegral bound_fs μ)
     (hfs_bound : ∀ n, ∀ᵐ x ∂μ, ‖fs n x‖ ≤ bound_fs x)
     (hfs : ∀ᵐ x ∂μ, Tendsto (fun n => fs n x) atTop (𝓝 (f x))) :
     Tendsto (fun n => condExpL1 hm μ (fs n)) atTop (𝓝 (condExpL1 hm μ f)) :=
@@ -447,8 +447,9 @@ theorem tendsto_condExp_unique (fs gs : ℕ → α → E) (f g : α → E)
     (hfs_int : ∀ n, Integrable (fs n) μ) (hgs_int : ∀ n, Integrable (gs n) μ)
     (hfs : ∀ᵐ x ∂μ, Tendsto (fun n => fs n x) atTop (𝓝 (f x)))
     (hgs : ∀ᵐ x ∂μ, Tendsto (fun n => gs n x) atTop (𝓝 (g x))) (bound_fs : α → ℝ)
-    (h_int_bound_fs : Integrable bound_fs μ) (bound_gs : α → ℝ)
-    (h_int_bound_gs : Integrable bound_gs μ) (hfs_bound : ∀ n, ∀ᵐ x ∂μ, ‖fs n x‖ ≤ bound_fs x)
+    (h_int_bound_fs : HasFiniteIntegral bound_fs μ) (bound_gs : α → ℝ)
+    (h_int_bound_gs : HasFiniteIntegral bound_gs μ)
+    (hfs_bound : ∀ n, ∀ᵐ x ∂μ, ‖fs n x‖ ≤ bound_fs x)
     (hgs_bound : ∀ n, ∀ᵐ x ∂μ, ‖gs n x‖ ≤ bound_gs x) (hfg : ∀ n, μ[fs n | m] =ᵐ[μ] μ[gs n | m]) :
     μ[f | m] =ᵐ[μ] μ[g | m] := by
   by_cases hm : m ≤ m₀; swap; · simp_rw [condExp_of_not_le hm]; rfl

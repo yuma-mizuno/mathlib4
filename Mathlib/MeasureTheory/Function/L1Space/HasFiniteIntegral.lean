@@ -5,6 +5,7 @@ Authors: Zhouhang Zhou
 -/
 module
 
+public import Mathlib.Analysis.Normed.Group.Indicator
 public import Mathlib.MeasureTheory.Function.StronglyMeasurable.AEStronglyMeasurable
 public import Mathlib.MeasureTheory.Integral.Lebesgue.DominatedConvergence
 public import Mathlib.MeasureTheory.Integral.Lebesgue.Norm
@@ -306,6 +307,10 @@ theorem isFiniteMeasure_withDensity_ofReal {f : α → ℝ} (hfi : HasFiniteInte
     IsFiniteMeasure (μ.withDensity fun x => ENNReal.ofReal <| f x) := by
   refine isFiniteMeasure_withDensity ((lintegral_mono fun x => ?_).trans_lt hfi).ne
   exact Real.ofReal_le_enorm (f x)
+
+theorem hasFiniteIntegral_indicator_iff {f : α → ε''} {s : Set α} (hs : MeasurableSet s) :
+    HasFiniteIntegral (s.indicator f) μ ↔ HasFiniteIntegral f (μ.restrict s) := by
+  simp_rw [hasFiniteIntegral_iff_enorm, enorm_indicator_eq_indicator_enorm, lintegral_indicator hs]
 
 section DominatedConvergence
 

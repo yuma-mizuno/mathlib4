@@ -196,7 +196,7 @@ theorem tendsto_integral_truncation {f : α → ℝ} (hf : Integrable f μ) :
     filter_upwards with x
     rw [Real.norm_eq_abs]
     exact abs_truncation_le_abs_self _ _ _
-  · exact hf.abs
+  · exact hf.abs.hasFiniteIntegral
   · filter_upwards with x
     apply tendsto_const_nhds.congr' _
     filter_upwards [Ioi_mem_atTop (abs (f x))] with A hA

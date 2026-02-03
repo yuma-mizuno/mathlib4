@@ -1019,12 +1019,12 @@ theorem norm_setToFun_le' (hT : DominatedFinMeasAdditive μ T C) (hf : Integrabl
 /-- Lebesgue dominated convergence theorem provides sufficient conditions under which almost
   everywhere convergence of a sequence of functions implies the convergence of their image by
   `setToFun`.
-  We could weaken the condition `bound_integrable` to require `HasFiniteIntegral bound μ` instead
-  (i.e. not requiring that `bound` is measurable), but in all applications proving integrability
-  is easier. -/
+  In many cases, the condition `HasFiniteIntegral bound μ` is obtained by proving
+  `Integrable bound μ`. -/
 theorem tendsto_setToFun_of_dominated_convergence (hT : DominatedFinMeasAdditive μ T C)
     {fs : ℕ → α → E} {f : α → E} (bound : α → ℝ)
-    (fs_measurable : ∀ n, AEStronglyMeasurable (fs n) μ) (bound_integrable : Integrable bound μ)
+    (fs_measurable : ∀ n, AEStronglyMeasurable (fs n) μ)
+    (bound_integrable : HasFiniteIntegral bound μ)
     (h_bound : ∀ n, ∀ᵐ a ∂μ, ‖fs n a‖ ≤ bound a)
     (h_lim : ∀ᵐ a ∂μ, Tendsto (fun n => fs n a) atTop (𝓝 (f a))) :
     Tendsto (fun n => setToFun μ T hT (fs n)) atTop (𝓝 <| setToFun μ T hT f) := by
@@ -1033,10 +1033,10 @@ theorem tendsto_setToFun_of_dominated_convergence (hT : DominatedFinMeasAdditive
     aestronglyMeasurable_of_tendsto_ae _ fs_measurable h_lim
   -- all functions we consider are integrable
   have fs_int : ∀ n, Integrable (fs n) μ := fun n =>
-    bound_integrable.mono' (fs_measurable n) (h_bound _)
+    ⟨fs_measurable n, bound_integrable.mono' (h_bound _)⟩
   have f_int : Integrable f μ :=
     ⟨f_measurable,
-      hasFiniteIntegral_of_dominated_convergence bound_integrable.hasFiniteIntegral h_bound
+      hasFiniteIntegral_of_dominated_convergence bound_integrable h_bound
         h_lim⟩
   -- it suffices to prove the result for the corresponding L1 functions
   suffices
@@ -1053,7 +1053,7 @@ theorem tendsto_setToFun_of_dominated_convergence (hT : DominatedFinMeasAdditive
     Tendsto (fun n => ENNReal.toReal <| ∫⁻ a, ENNReal.ofReal ‖fs n a - f a‖ ∂μ) atTop (𝓝 0) :=
     (tendsto_toReal zero_ne_top).comp
       (tendsto_lintegral_norm_of_dominated_convergence fs_measurable
-        bound_integrable.hasFiniteIntegral h_bound h_lim)
+        bound_integrable h_bound h_lim)
   convert lintegral_norm_tendsto_zero with n
   rw [L1.norm_def]
   congr 1
@@ -1067,7 +1067,8 @@ theorem tendsto_setToFun_of_dominated_convergence (hT : DominatedFinMeasAdditive
 theorem tendsto_setToFun_filter_of_dominated_convergence (hT : DominatedFinMeasAdditive μ T C) {ι}
     {l : Filter ι} [l.IsCountablyGenerated] {fs : ι → α → E} {f : α → E} (bound : α → ℝ)
     (hfs_meas : ∀ᶠ n in l, AEStronglyMeasurable (fs n) μ)
-    (h_bound : ∀ᶠ n in l, ∀ᵐ a ∂μ, ‖fs n a‖ ≤ bound a) (bound_integrable : Integrable bound μ)
+    (h_bound : ∀ᶠ n in l, ∀ᵐ a ∂μ, ‖fs n a‖ ≤ bound a)
+    (bound_integrable : HasFiniteIntegral bound μ)
     (h_lim : ∀ᵐ a ∂μ, Tendsto (fun n => fs n a) l (𝓝 (f a))) :
     Tendsto (fun n => setToFun μ T hT (fs n)) l (𝓝 <| setToFun μ T hT f) := by
   rw [tendsto_iff_seq_tendsto]
@@ -1091,21 +1092,24 @@ variable {X : Type*} [TopologicalSpace X] [FirstCountableTopology X]
 theorem continuousWithinAt_setToFun_of_dominated (hT : DominatedFinMeasAdditive μ T C)
     {fs : X → α → E} {x₀ : X} {bound : α → ℝ} {s : Set X}
     (hfs_meas : ∀ᶠ x in 𝓝[s] x₀, AEStronglyMeasurable (fs x) μ)
-    (h_bound : ∀ᶠ x in 𝓝[s] x₀, ∀ᵐ a ∂μ, ‖fs x a‖ ≤ bound a) (bound_integrable : Integrable bound μ)
+    (h_bound : ∀ᶠ x in 𝓝[s] x₀, ∀ᵐ a ∂μ, ‖fs x a‖ ≤ bound a)
+    (bound_integrable : HasFiniteIntegral bound μ)
     (h_cont : ∀ᵐ a ∂μ, ContinuousWithinAt (fun x => fs x a) s x₀) :
     ContinuousWithinAt (fun x => setToFun μ T hT (fs x)) s x₀ :=
   tendsto_setToFun_filter_of_dominated_convergence hT bound ‹_› ‹_› ‹_› ‹_›
 
 theorem continuousAt_setToFun_of_dominated (hT : DominatedFinMeasAdditive μ T C) {fs : X → α → E}
     {x₀ : X} {bound : α → ℝ} (hfs_meas : ∀ᶠ x in 𝓝 x₀, AEStronglyMeasurable (fs x) μ)
-    (h_bound : ∀ᶠ x in 𝓝 x₀, ∀ᵐ a ∂μ, ‖fs x a‖ ≤ bound a) (bound_integrable : Integrable bound μ)
+    (h_bound : ∀ᶠ x in 𝓝 x₀, ∀ᵐ a ∂μ, ‖fs x a‖ ≤ bound a)
+    (bound_integrable : HasFiniteIntegral bound μ)
     (h_cont : ∀ᵐ a ∂μ, ContinuousAt (fun x => fs x a) x₀) :
     ContinuousAt (fun x => setToFun μ T hT (fs x)) x₀ :=
   tendsto_setToFun_filter_of_dominated_convergence hT bound ‹_› ‹_› ‹_› ‹_›
 
 theorem continuousOn_setToFun_of_dominated (hT : DominatedFinMeasAdditive μ T C) {fs : X → α → E}
     {bound : α → ℝ} {s : Set X} (hfs_meas : ∀ x ∈ s, AEStronglyMeasurable (fs x) μ)
-    (h_bound : ∀ x ∈ s, ∀ᵐ a ∂μ, ‖fs x a‖ ≤ bound a) (bound_integrable : Integrable bound μ)
+    (h_bound : ∀ x ∈ s, ∀ᵐ a ∂μ, ‖fs x a‖ ≤ bound a)
+    (bound_integrable : HasFiniteIntegral bound μ)
     (h_cont : ∀ᵐ a ∂μ, ContinuousOn (fun x => fs x a) s) :
     ContinuousOn (fun x => setToFun μ T hT (fs x)) s := by
   intro x hx
@@ -1116,7 +1120,7 @@ theorem continuousOn_setToFun_of_dominated (hT : DominatedFinMeasAdditive μ T C
 
 theorem continuous_setToFun_of_dominated (hT : DominatedFinMeasAdditive μ T C) {fs : X → α → E}
     {bound : α → ℝ} (hfs_meas : ∀ x, AEStronglyMeasurable (fs x) μ)
-    (h_bound : ∀ x, ∀ᵐ a ∂μ, ‖fs x a‖ ≤ bound a) (bound_integrable : Integrable bound μ)
+    (h_bound : ∀ x, ∀ᵐ a ∂μ, ‖fs x a‖ ≤ bound a) (bound_integrable : HasFiniteIntegral bound μ)
     (h_cont : ∀ᵐ a ∂μ, Continuous fun x => fs x a) : Continuous fun x => setToFun μ T hT (fs x) :=
   continuous_iff_continuousAt.mpr fun _ =>
     continuousAt_setToFun_of_dominated hT (Eventually.of_forall hfs_meas)

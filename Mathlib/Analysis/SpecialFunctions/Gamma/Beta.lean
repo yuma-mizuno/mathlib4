@@ -308,7 +308,7 @@ theorem approx_Gamma_integral_tendsto_Gamma_integral {s : ℂ} (hs : 0 < re s) :
       rw [neg_div, ← sub_eq_add_neg]
   -- let `convert` identify the remaining goals
   convert tendsto_integral_of_dominated_convergence _ (fun n => (f_ible n).1)
-    (Real.GammaIntegral_convergent hs) _
+    (Real.GammaIntegral_convergent hs).hasFiniteIntegral _
     ((ae_restrict_iff' measurableSet_Ioi).mpr (ae_of_all _ f_tends)) using 1
   -- limit of f is the integrand we want
   · ext1 n

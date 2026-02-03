@@ -75,9 +75,9 @@ theorem ae_eq_zero_of_integral_contMDiff_smul_eq_zero [SigmaCompactSpace M]
     let bound : M → ℝ := K.indicator (fun x ↦ ‖f x‖)
     have A : ∀ n, AEStronglyMeasurable (fun x ↦ g n x • f x) μ :=
       fun n ↦ (g_diff n).continuous.aestronglyMeasurable.smul hf.aestronglyMeasurable
-    have B : Integrable bound μ := by
-      rw [integrable_indicator_iff K_compact.measurableSet]
-      exact (hf.integrableOn_isCompact K_compact).norm
+    have B : HasFiniteIntegral bound μ := by
+      rw [hasFiniteIntegral_indicator_iff K_compact.measurableSet]
+      exact (hf.integrableOn_isCompact K_compact).hasFiniteIntegral.norm
     have C : ∀ n, ∀ᵐ x ∂μ, ‖g n x • f x‖ ≤ bound x := by
       intro n
       filter_upwards with x

@@ -148,7 +148,7 @@ theorem hasFDerivAt_integral_of_dominated_loc_of_lip' {F' : α → H →L[𝕜] 
       _ ≤ b a + ‖F' a‖ := ?_
     simp only [← div_eq_inv_mul]
     apply_rules [add_le_add, div_le_of_le_mul₀] <;> first | rfl | positivity
-  · exact b_int.add hF'_int.norm
+  · exact (b_int.add hF'_int.norm).hasFiniteIntegral
   · apply h_diff.mono
     intro a ha
     suffices Tendsto (fun x ↦ ‖x - x₀‖⁻¹ • (F x a - F x₀ a - F' a (x - x₀))) (𝓝 x₀) (𝓝 0) by simpa
