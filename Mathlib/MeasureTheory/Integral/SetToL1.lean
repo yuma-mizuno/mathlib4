@@ -1019,7 +1019,7 @@ theorem norm_setToFun_le' (hT : DominatedFinMeasAdditive μ T C) (hf : Integrabl
 /-- Lebesgue dominated convergence theorem provides sufficient conditions under which almost
   everywhere convergence of a sequence of functions implies the convergence of their image by
   `setToFun`.
-  In many cases, the condition `HasFiniteIntegral bound μ` is obtained by proving
+  In many applications, the condition `HasFiniteIntegral bound μ` is obtained by proving
   `Integrable bound μ`. -/
 theorem tendsto_setToFun_of_dominated_convergence (hT : DominatedFinMeasAdditive μ T C)
     {fs : ℕ → α → E} {f : α → E} (bound : α → ℝ)
