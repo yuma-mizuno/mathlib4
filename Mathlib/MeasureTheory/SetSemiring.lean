@@ -623,4 +623,14 @@ theorem accumulate_mem (hC : IsSetRing C) {s : ℕ → Set α} (hs : ∀ i, s i 
 
 end IsSetRing
 
+namespace MeasurableSpace
+
+theorem isSetRing_MeasurableSet (α : Type*) [MeasurableSpace α] :
+    IsSetRing (MeasurableSet : (Set (Set α))) where
+  empty_mem := MeasurableSet.empty
+  union_mem _ _ hs ht := MeasurableSet.union hs ht
+  diff_mem _ _ hs ht := MeasurableSet.diff hs ht
+
+end MeasurableSpace
+
 end MeasureTheory

@@ -6,6 +6,7 @@ Authors: Johannes Hölzl, Mario Carneiro
 module
 
 public import Mathlib.MeasureTheory.MeasurableSpace.MeasurablyGenerated
+public import Mathlib.MeasureTheory.Measure.AddContent
 public import Mathlib.MeasureTheory.Measure.NullMeasurable
 public import Mathlib.Order.Interval.Set.Monotone
 import Mathlib.Topology.Order.AtTopBotIxx
@@ -700,6 +701,19 @@ lemma ext_of_measurableAtoms [Countable α] {μ ν : Measure α}
   obtain ⟨x, hxs, hx⟩ := hs'
   rw [← hx]
   exact h x
+
+def Measure.ofAddContent (m : AddContent ℝ≥0∞ MeasurableSet)
+    (mU : ∀ ⦃f : ℕ → Set α⦄, (∀ i, MeasurableSet (f i)) → Monotone f →
+      m (⋃ i, f i) = ⨆ i, m (f i)) :
+    Measure α :=
+  ofMeasurable (fun s _ ↦ m s) (by simp) <| fun f hf hd ↦
+    addContent_iUnion_eq_tsum (MeasurableSpace.isSetRing_MeasurableSet α) _ _ hf hd mU
+
+theorem Measure.ofAddContent_apply {m : AddContent ℝ≥0∞ MeasurableSet}
+    {mU : ∀ ⦃f : ℕ → Set α⦄, (∀ i, MeasurableSet (f i)) → Monotone f →
+      m (⋃ i, f i) = ⨆ i, m (f i)}
+    (s : Set α) (hs : MeasurableSet s) : ofAddContent m mU s = m s :=
+  ofMeasurable_apply s hs
 
 end
 
