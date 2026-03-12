@@ -6,7 +6,6 @@ Authors: Johannes Hölzl, Mario Carneiro
 module
 
 public import Mathlib.MeasureTheory.MeasurableSpace.MeasurablyGenerated
-public import Mathlib.MeasureTheory.Measure.AddContent
 public import Mathlib.MeasureTheory.Measure.NullMeasurable
 public import Mathlib.Order.Interval.Set.Monotone
 import Mathlib.Topology.Order.AtTopBotIxx

@@ -601,27 +601,6 @@ theorem addContent_of_union_apply (m : Set α → G) (hC : IsSetRing C) (m_empty
     hC.addContent_of_union m m_empty m_add s = m s :=
   rfl
 
-noncomputable def IsSetRing.addContent_of_union_extend (hC : IsSetRing C)
-    (m : (s : Set α) → C s → ℝ≥0∞)
-    (m_empty : m ∅ hC.empty_mem = 0)
-    (m_add : ∀ {s t : Set α} (hs : s ∈ C) (ht : t ∈ C),
-      Disjoint s t → m (s ∪ t) (hC.union_mem hs ht) = m s hs + m t ht) :
-    AddContent ℝ≥0∞ C :=
-  hC.addContent_of_union (extend (fun s hs ↦ m s hs))
-    (by rw [extend_eq _ hC.empty_mem, m_empty])
-    (fun hs ht hst ↦ by
-      rw [extend_eq _ hs, extend_eq _ ht, extend_eq _ (hC.union_mem hs ht)]
-      exact m_add hs ht hst)
-
-theorem IsSetRing.addContent_of_union_extend_eq (hC : IsSetRing C)
-    (m : (s : Set α) → C s → ℝ≥0∞)
-    (m_empty : m ∅ hC.empty_mem = 0)
-    (m_add : ∀ {s t : Set α} (hs : s ∈ C) (ht : t ∈ C),
-      Disjoint s t → m (s ∪ t) (hC.union_mem hs ht) = m s hs + m t ht)
-    {s : Set α} (hs : s ∈ C) :
-    hC.addContent_of_union_extend m m_empty m_add s = m s hs := by
-  rw [addContent_of_union_extend, addContent_of_union_apply, extend_eq _ hs]
-
 variable [PartialOrder G] [CanonicallyOrderedAdd G]
 
 lemma addContent_union_le (hC : IsSetRing C) (hs : s ∈ C) (ht : t ∈ C) :
